@@ -1,0 +1,89 @@
+name: "CI - Test Features & Generate Documentation"
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    strategy:
+      matrix:
+        features: [
+           "confluent-cli",
+           "confluent-platform"
+        ]
+        baseImage:
+          [
+            "mcr.microsoft.com/devcontainers/base:ubuntu"
+          ]
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: "Install latest devcontainer CLI"
+        run: npm install -g @devcontainers/cli
+
+      - name: "Generating tests for '${{ matrix.features }}' against '${{ matrix.baseImage }}'"
+        run: devcontainer features test -f ${{ matrix.features }} -i ${{ matrix.baseImage }} .
+
+  test-global:
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: "Install latest devcontainer CLI"
+        run: npm install -g @devcontainers/cli
+
+      - name: "Testing global scenarios"
+        run: devcontainer features test --global-scenarios-only .
+
+  update-readme:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+
+      - name: "Update Readme"
+        uses: devcontainers/action@v1
+        with:
+          base-path-to-features: "./src"
+          generate-docs: "true"
+
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Commit
+        id: push_image_info
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -e
+          echo "Start."
+          # Configure git and Push updates
+          git config --global --add safe.directory /github/workspace
+          git config --global user.email github-actions@github.com
+          git config --global user.name github-actions
+          git config pull.rebase false
+          git fetch --depth=1 origin +refs/tags/*:refs/tags/* || true
+          message='Automated documentation update'
+          # Add / update and commit
+          git add */**/README.md
+          if [ "$(git status --porcelain | grep "$file" | grep -c -E '([MA]\W).+')" -eq 1 ]; then
+            echo "::debug Added ${file} to git staging area"
+          else
+            echo "::debug No change in ${file} detected"
+          fi
+
+          echo "::debug Following files will be committed"
+          git status -s
+
+          git commit -m 'Automated documentation update [skip ci]' || export NO_UPDATES=true
+          # Push
+          if [ "$NO_UPDATES" != "true" ] ; then
+              git push
+          fi
