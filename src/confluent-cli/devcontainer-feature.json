@@ -1,0 +1,20 @@
+{
+    "id": "confluent-cli",
+    "version": "1.0.0",
+
+    "name": "Confluent CLI Installer",
+    "description": "Installs the Confluent CLI inside a Dev Container",
+
+    "options": {
+        "version": {
+            "type": "string",
+            "default": "latest",
+            "description": "Release version to install (e.g. '3.24.1' or use 'latest' to auto-detect from GitHub)."
+        },
+        "installPath": {
+            "type": "string",
+            "default": "/usr/local/bin",
+            "description": "Folder where the confluent binary will be placed."
+        }
+    }
+}
