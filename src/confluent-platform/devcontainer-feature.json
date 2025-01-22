@@ -1,0 +1,18 @@
+{
+    "id": "confluent-platform",
+    "version": "1.0.0",
+    "name": "Confluent Platform",
+    "description": "Installs the Confluent Platform (including Kafka and other services) from an official tarball.",
+    "options": {
+        "version": {
+            "type": "string",
+            "default": "7.4.0",
+            "description": "Which Confluent Platform version to install (e.g. 7.4.0, 7.3.2, etc.)"
+        },
+        "installPath": {
+            "type": "string",
+            "default": "/usr/local/confluent",
+            "description": "Where to extract the Confluent Platform files."
+        }
+    }
+}
