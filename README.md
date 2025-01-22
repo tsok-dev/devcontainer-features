@@ -1,7 +1,3 @@
-Below is an updated **README.md** that reflects the repository’s structure where all features are stored under `./src/` (e.g., `./src/confluent-cli/` and `./src/confluent-platform/`).
-
----
-
 # Dev Container Features: Confluent CLI & Confluent Platform
 
 This repository hosts multiple Dev Container Features for working with [Confluent](https://www.confluent.io/) in a Docker-based development environment.  
@@ -136,7 +132,3 @@ We welcome contributions and issues. Feel free to open a PR or file an issue:
 ## License
 
 Include your chosen license (e.g. [MIT License](https://opensource.org/licenses/MIT)) in a `LICENSE` file at the root of this repo.
-
----
-
-**Happy Developing with Confluent!**
