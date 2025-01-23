@@ -18,6 +18,12 @@ Installs the Confluent Platform (including Kafka and other services) from an off
 | version | Which Confluent Platform version to install (e.g. 7.4.0, 7.3.2, etc.) | string | 7.4.0 |
 | installPath | Where to extract the Confluent Platform files. | string | /usr/local/confluent |
 
+## Customizations
+
+### VS Code Extensions
+
+- `confluentinc.vscode-confluent`
+
 
 
 ---
