@@ -9,5 +9,8 @@
             "default": "latest",
             "description": "Which version of wgc to install (e.g. latest, 0.50.0)"
         }
-    }
+    },
+    "installsAfter": [
+        "ghcr.io/devcontainers/features/common-utils"
+    ]
 }

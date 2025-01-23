@@ -1,10 +1,8 @@
 {
     "id": "confluent-cli",
-    "version": "1.0.0",
-
+    "version": "1.0.1",
     "name": "Confluent CLI Installer",
     "description": "Installs the Confluent CLI inside a Dev Container",
-
     "options": {
         "version": {
             "type": "string",
@@ -16,5 +14,8 @@
             "default": "/usr/local/bin",
             "description": "Folder where the confluent binary will be placed."
         }
-    }
+    },
+    "installsAfter": [
+        "ghcr.io/devcontainers/features/common-utils"
+    ]
 }

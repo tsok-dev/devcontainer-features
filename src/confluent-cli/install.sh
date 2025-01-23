@@ -51,9 +51,6 @@ echo "Installing Confluent CLI version $VERSION for $OS-$ARCH..."
 TARBALL_URL="https://github.com/confluentinc/cli/releases/download/v${VERSION}/confluent_${VERSION}_${OS}_${ARCH}.tar.gz"
 echo "Downloading $TARBALL_URL"
 
-# Make sure we have curl / tar. If needed, run apt-get or similar (for Debian/Ubuntu):
-apt-get update -y && apt-get install -y curl tar
-
 # Download
 curl -sSL -o /tmp/confluent-cli.tgz "$TARBALL_URL"
 

@@ -27,9 +27,6 @@ echo "Download URL: $TARBALL_URL"
 # Install dependencies, then download & extract
 ################################################################################
 
-apt-get update -y
-apt-get install -y curl tar
-
 # Download tarball
 curl -sSL -o /tmp/confluent-platform.tgz "$TARBALL_URL"
 
