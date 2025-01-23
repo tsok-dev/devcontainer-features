@@ -1,0 +1,26 @@
+{
+    "id": "cosmo-router",
+    "version": "1.0.0",
+    "name": "WunderGraph Cosmo Router",
+    "description": "Installs the Cosmo Router binary from GitHub releases.",
+    "options": {
+        "version": {
+            "type": "string",
+            "default": "0.164.1",
+            "description": "The router@<version> to download from GitHub releases"
+        },
+        "installPath": {
+            "type": "string",
+            "default": "/usr/local/bin",
+            "description": "Install destination for the binary"
+        },
+        "binaryName": {
+            "type": "string",
+            "default": "router",
+            "description": "Rename the binary if desired (e.g. 'wgrouter')"
+        }
+    },
+    "installsAfter": [
+        "ghcr.io/devcontainers/features/common-utils"
+    ]
+}
