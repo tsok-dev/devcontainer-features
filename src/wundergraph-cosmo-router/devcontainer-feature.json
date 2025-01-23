@@ -1,5 +1,5 @@
 {
-    "id": "cosmo-router",
+    "id": "wundergraph-cosmo-router",
     "version": "1.0.0",
     "name": "WunderGraph Cosmo Router",
     "description": "Installs the Cosmo Router binary from GitHub releases.",
