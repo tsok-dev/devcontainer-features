@@ -1,0 +1,13 @@
+{
+    "id": "cosmo-cli",
+    "version": "1.0.0",
+    "name": "WunderGraph CLI",
+    "description": "Installs the WunderGraph CLI (wgc) via npm, if npm is available.",
+    "options": {
+        "version": {
+            "type": "string",
+            "default": "latest",
+            "description": "Which version of wgc to install (e.g. latest, 0.50.0)"
+        }
+    }
+}
