@@ -1,0 +1,21 @@
+{
+    "id": "webhookrelay-cli",
+    "version": "1.0.0",
+    "name": "Webhook Relay CLI",
+    "description": "Installs the Webhook Relay CLI from the official download script.",
+    "options": {
+        "binaryName": {
+            "type": "string",
+            "default": "relay",
+            "description": "Rename the installed CLI from 'relay' to a custom name if desired."
+        },
+        "installPath": {
+            "type": "string",
+            "default": "/usr/local/bin",
+            "description": "Directory to which the CLI binary will be installed."
+        }
+    },
+    "installsAfter": [
+        "ghcr.io/devcontainers/features/common-utils"
+    ]
+}
