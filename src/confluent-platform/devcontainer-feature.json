@@ -14,5 +14,12 @@
             "default": "/usr/local/confluent",
             "description": "Where to extract the Confluent Platform files."
         }
-    }
+    },
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "confluentinc.vscode-confluent"
+            ]
+        }
+    }   
 }
