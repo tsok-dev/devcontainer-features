@@ -39,7 +39,7 @@ if [ "$VERSION" = "latest" ]; then
     echo "Fetching latest version from GitHub API..."
     # Query the GitHub API for the latest release tag of confluentinc/cli
     LATEST=$(curl -s https://api.github.com/repos/confluentinc/cli/releases/latest | grep '"tag_name":' | sed -E 's/.*"v?([^"]+)".*/\1/')
-    VERSION="v${LATEST}"
+    VERSION="${LATEST}"
     echo "Latest version is $VERSION"
 fi
 
@@ -80,7 +80,7 @@ fi
 
 # Copy binary to the specified installPath
 echo "Copying confluent binary to $INSTALL_PATH"
-cp "$EXTRACTED_DIR/bin/confluent" "$INSTALL_PATH/"
+cp "$EXTRACTED_DIR/confluent" "$INSTALL_PATH/"
 
 # Ensure it's executable
 chmod +x "$INSTALL_PATH/confluent"
