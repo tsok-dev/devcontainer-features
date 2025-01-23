@@ -17,6 +17,13 @@
         "../src/confluent-platform": {
             "version": "7.4.0",
             "installPath": "/usr/local/confluent"
+        },
+        "../src/wundergraph-cosmo-router": {
+            "version": "0.164.1",
+            "installPath": "/usr/local/bin"
+        },
+        "../src/wundergraph-cosmo-cli": {
+            "version": "0.72.0"
         }
     },
     "remoteUser": "node",
