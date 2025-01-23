@@ -1,0 +1,16 @@
+{
+    "id": "localtunnel",
+    "version": "1.0.0",
+    "name": "LocalTunnel",
+    "description": "Installs the LocalTunnel CLI (lt) via npm if npm is available.",
+    "options": {
+        "version": {
+            "type": "string",
+            "default": "latest",
+            "description": "The localtunnel package version to install (e.g. latest, 2.0.2, etc.)"
+        }
+    },
+    "installsAfter": [
+        "ghcr.io/devcontainers/features/common-utils"
+    ]
+}
