@@ -1,6 +1,6 @@
 {
     "id": "confluent-platform",
-    "version": "1.1.1",
+    "version": "1.1.2",
     "name": "Confluent Platform",
     "description": "Installs the Confluent Platform (including Kafka and other services) from an official tarball.",
     "options": {

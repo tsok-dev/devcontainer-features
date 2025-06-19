@@ -1,6 +1,6 @@
 {
     "id": "confluent-cli",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "name": "Confluent CLI Installer",
     "description": "Installs the Confluent CLI inside a Dev Container",
     "options": {

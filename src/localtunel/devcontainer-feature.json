@@ -1,6 +1,6 @@
 {
     "id": "localtunnel",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "name": "LocalTunnel",
     "description": "Installs the LocalTunnel CLI (lt) via npm if npm is available.",
     "options": {

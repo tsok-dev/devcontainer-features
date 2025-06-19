@@ -1,6 +1,6 @@
 {
     "id": "webhookrelay-cli",
-    "version": "1.0.0",
+    "version": "1.0.3",
     "name": "Webhook Relay CLI",
     "description": "Installs the Webhook Relay CLI from the official download script.",
     "options": {
