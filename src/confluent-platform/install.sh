@@ -62,6 +62,9 @@ mv "$EXTRACTED_DIR"/* "$INSTALL_PATH"
 
 rm -rf /tmp/confluent-platform.tgz "$EXTRACTED_DIR"
 
+USERNAME="${USERNAME:-"${_REMOTE_USER:-node}"}"
+chown -R "$USERNAME:$USERNAME" "$INSTALL_PATH"
+
 echo "**** Confluent Platform installed in $INSTALL_PATH ****"
 echo "You can start Kafka (for example) with:"
 echo "  $INSTALL_PATH/bin/kafka-server-start $INSTALL_PATH/etc/kafka/server.properties"
