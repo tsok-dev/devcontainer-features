@@ -1,12 +1,13 @@
-# Redis Server
 
-Installs Redis, the open source in-memory data store used by millions of developers as a database, cache, streaming engine, and message broker.
+# Redis Server (redis-server)
+
+The open source, in-memory data store used by millions of developers as a database, cache, streaming engine, and message broker.
 
 ## Example Usage
 
 ```json
 "features": {
-    "ghcr.io/your-org/devcontainer-features/redis-server:1": {}
+    "ghcr.io/tsok-dev/devcontainer-features/redis-server:1": {}
 }
 ```
 
@@ -14,33 +15,16 @@ Installs Redis, the open source in-memory data store used by millions of develop
 
 | Options Id | Description | Type | Default Value |
 |-----|-----|-----|-----|
-| version | Select or enter a version of Redis | string | latest |
+| version | Select or enter a version of Redis. | string | latest |
 
-## Supported Versions
+## Customizations
 
-- `latest` - Latest stable version
-- `7` - Redis 7.x series
-- `8` - Redis 8.x series (if available)
+### VS Code Extensions
 
-## What's Included
+- `cweijan.vscode-redis-client`
 
-- Redis Server with automatic startup
-- Redis CLI tools for management
-- Persistent data storage in `/var/lib/redis-server/data`
-- VS Code Redis Client extension for easy database management
 
-## Usage
 
-Once installed, Redis will automatically start when the container launches. You can connect to Redis using:
+---
 
-```bash
-redis-cli
-```
-
-The Redis server runs on the default port `6379` and data is persisted in a Docker volume.
-
-## Notes
-
-- Redis runs as a daemon and automatically starts on container launch
-- Data persistence is handled through Docker volumes
-- The feature includes both systemd and fallback startup methods for compatibility
+_Note: This file was auto-generated from the [devcontainer-feature.json](https://github.com/tsok-dev/devcontainer-features/blob/main/src/redis/devcontainer-feature.json).  Add additional notes to a `NOTES.md`._
