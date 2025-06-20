@@ -22,7 +22,17 @@ echo "[INFO] Installing localtunnel (lt) via npm at version: ${LOCALTUNNEL_VERSI
 ################################################################################
 # Install LocalTunnel globally
 ################################################################################
-npm install --global "localtunnel@${LOCALTUNNEL_VERSION}"
+if [ "${LOCALTUNNEL_VERSION}" = "latest" ]; then
+    if ! npm install --global "localtunnel"; then
+        echo "[ERROR] Failed to install localtunnel"
+        exit 1
+    fi
+else
+    if ! npm install --global "localtunnel@${LOCALTUNNEL_VERSION}"; then
+        echo "[ERROR] Failed to install localtunnel@${LOCALTUNNEL_VERSION}"
+        exit 1
+    fi
+fi
 
 echo "[INFO] LocalTunnel installation complete!"
 echo "[INFO] Checking 'lt --help':"
