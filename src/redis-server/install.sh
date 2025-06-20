@@ -81,6 +81,22 @@ setup_redis() {
             echo "dir /var/lib/redis-server/data" >> /etc/redis/redis.conf
         fi
         
+        # Set up logging to a writable location
+        mkdir -p /var/lib/redis-server/logs
+        if [ "${USERNAME}" != "root" ] && id "${USERNAME}" >/dev/null 2>&1; then
+            chown -R "${USERNAME}:${USERNAME}" /var/lib/redis-server/logs
+        elif id redis >/dev/null 2>&1; then
+            chown -R redis:redis /var/lib/redis-server/logs
+        fi
+        chmod 755 /var/lib/redis-server/logs
+        
+        # Update log file location to our writable directory
+        sed -i 's|^logfile.*|logfile /var/lib/redis-server/logs/redis-server.log|' /etc/redis/redis.conf
+        # If no logfile line exists, add it
+        if ! grep -q "^logfile " /etc/redis/redis.conf; then
+            echo "logfile /var/lib/redis-server/logs/redis-server.log" >> /etc/redis/redis.conf
+        fi
+        
         # Enable Redis to start as a daemon
         sed -i 's/^daemonize no/daemonize yes/' /etc/redis/redis.conf
         
@@ -105,18 +121,24 @@ set -e
 
 # Ensure Redis data directory exists
 mkdir -p /var/lib/redis-server/data
+mkdir -p /var/lib/redis-server/logs
 
 # Set permissions using the same logic as installation
 if [ "${USERNAME}" != "root" ] && id "${USERNAME}" >/dev/null 2>&1; then
     chown -R "${USERNAME}:${USERNAME}" /var/lib/redis-server/data
+    chown -R "${USERNAME}:${USERNAME}" /var/lib/redis-server/logs
     chmod 0755 /var/lib/redis-server/data
+    chmod 0755 /var/lib/redis-server/logs
     REDIS_USER="${USERNAME}"
 elif id redis >/dev/null 2>&1; then
     chown -R redis:redis /var/lib/redis-server/data
+    chown -R redis:redis /var/lib/redis-server/logs
     chmod 0750 /var/lib/redis-server/data
+    chmod 0750 /var/lib/redis-server/logs
     REDIS_USER="redis"
 else
     chmod 0755 /var/lib/redis-server/data
+    chmod 0755 /var/lib/redis-server/logs
     REDIS_USER="\$(whoami)"
 fi
 
@@ -125,6 +147,8 @@ if [ -f /etc/redis/redis.conf ]; then
     chmod 644 /etc/redis/redis.conf
     # Also ensure the config uses the correct data directory
     sed -i 's|^dir /var/lib/redis.*|dir /var/lib/redis-server/data|' /etc/redis/redis.conf
+    # Update log file location to our writable directory
+    sed -i 's|^logfile.*|logfile /var/lib/redis-server/logs/redis-server.log|' /etc/redis/redis.conf
 fi
 
 # Set memory overcommit to avoid Redis warnings in containers
@@ -183,9 +207,9 @@ else
             else
                 echo "Redis still not responding on port 6379"
                 # Show Redis log if available
-                if [ -f /var/log/redis/redis-server.log ]; then
+                if [ -f /var/lib/redis-server/logs/redis-server.log ]; then
                     echo "Last few lines of Redis log:"
-                    tail -n 5 /var/log/redis/redis-server.log 2>/dev/null || true
+                    tail -n 5 /var/lib/redis-server/logs/redis-server.log 2>/dev/null || true
                 fi
             fi
         else
