@@ -27,4 +27,4 @@ The open source, in-memory data store used by millions of developers as a databa
 
 ---
 
-_Note: This file was auto-generated from the [devcontainer-feature.json](https://github.com/tsok-dev/devcontainer-features/blob/main/src/redis/devcontainer-feature.json).  Add additional notes to a `NOTES.md`._
+_Note: This file was auto-generated from the [devcontainer-feature.json](https://github.com/tsok-dev/devcontainer-features/blob/main/src/redis-server/devcontainer-feature.json).  Add additional notes to a `NOTES.md`._
