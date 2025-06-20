@@ -74,10 +74,21 @@ setup_redis() {
         # Make config file readable by the user who will run Redis
         chmod 644 /etc/redis/redis.conf
         
-        # Update configuration
-        echo "dir /var/lib/redis-server/data" >> /etc/redis/redis.conf
+        # Update configuration - replace the default dir instead of appending
+        sed -i 's|^dir /var/lib/redis.*|dir /var/lib/redis-server/data|' /etc/redis/redis.conf
+        # If no dir line exists, add it
+        if ! grep -q "^dir " /etc/redis/redis.conf; then
+            echo "dir /var/lib/redis-server/data" >> /etc/redis/redis.conf
+        fi
+        
         # Enable Redis to start as a daemon
         sed -i 's/^daemonize no/daemonize yes/' /etc/redis/redis.conf
+        
+        # Add memory overcommit setting to avoid warnings
+        if ! grep -q "vm.overcommit_memory" /etc/redis/redis.conf; then
+            echo "# Memory overcommit setting for containers" >> /etc/redis/redis.conf
+            echo "# This is handled at the system level in containers" >> /etc/redis/redis.conf
+        fi
         
         # Set ownership of config directory
         if [ "${USERNAME}" != "root" ] && id "${USERNAME}" >/dev/null 2>&1; then
@@ -112,7 +123,12 @@ fi
 # Ensure config file permissions are correct
 if [ -f /etc/redis/redis.conf ]; then
     chmod 644 /etc/redis/redis.conf
+    # Also ensure the config uses the correct data directory
+    sed -i 's|^dir /var/lib/redis.*|dir /var/lib/redis-server/data|' /etc/redis/redis.conf
 fi
+
+# Set memory overcommit to avoid Redis warnings in containers
+echo 1 > /proc/sys/vm/overcommit_memory 2>/dev/null || true
 
 # Start Redis server
 if command -v systemctl >/dev/null 2>&1 && systemctl is-system-running >/dev/null 2>&1; then
@@ -161,6 +177,17 @@ else
     if command -v pgrep >/dev/null 2>&1; then
         if pgrep redis-server >/dev/null 2>&1; then
             echo "Redis process is running but not responding to ping"
+            echo "Trying to connect with explicit port..."
+            if redis-cli -p 6379 ping >/dev/null 2>&1; then
+                echo "Redis is responding on port 6379"
+            else
+                echo "Redis still not responding on port 6379"
+                # Show Redis log if available
+                if [ -f /var/log/redis/redis-server.log ]; then
+                    echo "Last few lines of Redis log:"
+                    tail -n 5 /var/log/redis/redis-server.log 2>/dev/null || true
+                fi
+            fi
         else
             echo "Redis process not found"
         fi
