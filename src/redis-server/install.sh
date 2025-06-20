@@ -57,8 +57,17 @@ check_packages() {
 setup_redis() {
     # Create Redis data directory and set permissions
     mkdir -p /var/lib/redis-server/data
-    chown -R redis:redis /var/lib/redis-server/data
-    chmod 0750 /var/lib/redis-server/data
+    
+    # Set ownership to the determined USERNAME if not root, otherwise try redis user
+    if [ "${USERNAME}" != "root" ] && id "${USERNAME}" >/dev/null 2>&1; then
+        chown -R "${USERNAME}:${USERNAME}" /var/lib/redis-server/data
+        chmod 0755 /var/lib/redis-server/data
+    elif id redis >/dev/null 2>&1; then
+        chown -R redis:redis /var/lib/redis-server/data
+        chmod 0750 /var/lib/redis-server/data
+    else
+        chmod 0755 /var/lib/redis-server/data
+    fi
     
     # Update Redis configuration
     if [ -f /etc/redis/redis.conf ]; then
@@ -68,13 +77,26 @@ setup_redis() {
     fi
     
     # Create init script that handles both systemd and direct Redis startup
-    tee /usr/local/share/redis-server-init.sh << 'EOF'
+    tee /usr/local/share/redis-server-init.sh << EOF
 #!/bin/sh
 set -e
 
-# Ensure Redis data directory permissions are correct
-chown -R redis:redis /var/lib/redis-server/data
-chmod 0750 /var/lib/redis-server/data
+# Ensure Redis data directory exists
+mkdir -p /var/lib/redis-server/data
+
+# Set permissions using the same logic as installation
+if [ "${USERNAME}" != "root" ] && id "${USERNAME}" >/dev/null 2>&1; then
+    chown -R "${USERNAME}:${USERNAME}" /var/lib/redis-server/data
+    chmod 0755 /var/lib/redis-server/data
+    REDIS_USER="${USERNAME}"
+elif id redis >/dev/null 2>&1; then
+    chown -R redis:redis /var/lib/redis-server/data
+    chmod 0750 /var/lib/redis-server/data
+    REDIS_USER="redis"
+else
+    chmod 0755 /var/lib/redis-server/data
+    REDIS_USER="\$(whoami)"
+fi
 
 # Start Redis server
 if command -v systemctl >/dev/null 2>&1 && systemctl is-system-running >/dev/null 2>&1; then
@@ -82,10 +104,25 @@ if command -v systemctl >/dev/null 2>&1 && systemctl is-system-running >/dev/nul
     systemctl enable redis-server >/dev/null 2>&1 || true
     systemctl start redis-server || {
         echo "Systemd failed, falling back to direct Redis startup"
-        redis-server /etc/redis/redis.conf --daemonize yes
+        if [ -f /etc/redis/redis.conf ]; then
+            redis-server /etc/redis/redis.conf --daemonize yes
+        else
+            redis-server --daemonize yes --dir /var/lib/redis-server/data
+        fi
+    }
+elif command -v service >/dev/null 2>&1; then
+    # Try using service command if available
+    service redis-server start >/dev/null 2>&1 || {
+        echo "Service command failed, falling back to direct Redis startup"
+        if [ -f /etc/redis/redis.conf ]; then
+            redis-server /etc/redis/redis.conf --daemonize yes
+        else
+            redis-server --daemonize yes --dir /var/lib/redis-server/data
+        fi
     }
 else
     # Fall back to direct Redis startup
+    echo "Starting Redis server directly..."
     if [ -f /etc/redis/redis.conf ]; then
         redis-server /etc/redis/redis.conf --daemonize yes
     else
@@ -94,18 +131,28 @@ else
 fi
 
 # Wait a moment for Redis to start
-sleep 2
+sleep 3
 
 # Verify Redis is running
-if ! redis-cli ping >/dev/null 2>&1; then
+if redis-cli ping >/dev/null 2>&1; then
+    echo "Redis server started successfully"
+else
     echo "Warning: Redis may not be running properly"
+    # Try to show Redis process status for debugging
+    if command -v pgrep >/dev/null 2>&1; then
+        if pgrep redis-server >/dev/null 2>&1; then
+            echo "Redis process is running but not responding to ping"
+        else
+            echo "Redis process not found"
+        fi
+    fi
 fi
 
 set +e
 
 # Execute whatever commands were passed in (if any). This allows us
 # to set this script to ENTRYPOINT while still executing the default CMD.
-exec "$@"
+exec "\$@"
 EOF
     chmod +x /usr/local/share/redis-server-init.sh
     chown ${USERNAME}:root /usr/local/share/redis-server-init.sh
