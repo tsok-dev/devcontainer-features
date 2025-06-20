@@ -69,11 +69,22 @@ setup_redis() {
         chmod 0755 /var/lib/redis-server/data
     fi
     
-    # Update Redis configuration
+    # Update Redis configuration and fix permissions
     if [ -f /etc/redis/redis.conf ]; then
+        # Make config file readable by the user who will run Redis
+        chmod 644 /etc/redis/redis.conf
+        
+        # Update configuration
         echo "dir /var/lib/redis-server/data" >> /etc/redis/redis.conf
         # Enable Redis to start as a daemon
         sed -i 's/^daemonize no/daemonize yes/' /etc/redis/redis.conf
+        
+        # Set ownership of config directory
+        if [ "${USERNAME}" != "root" ] && id "${USERNAME}" >/dev/null 2>&1; then
+            chown -R "${USERNAME}:${USERNAME}" /etc/redis/
+        elif id redis >/dev/null 2>&1; then
+            chown -R redis:redis /etc/redis/
+        fi
     fi
     
     # Create init script that handles both systemd and direct Redis startup
@@ -98,35 +109,43 @@ else
     REDIS_USER="\$(whoami)"
 fi
 
+# Ensure config file permissions are correct
+if [ -f /etc/redis/redis.conf ]; then
+    chmod 644 /etc/redis/redis.conf
+fi
+
 # Start Redis server
 if command -v systemctl >/dev/null 2>&1 && systemctl is-system-running >/dev/null 2>&1; then
     # Use systemd if available and running
     systemctl enable redis-server >/dev/null 2>&1 || true
     systemctl start redis-server || {
         echo "Systemd failed, falling back to direct Redis startup"
-        if [ -f /etc/redis/redis.conf ]; then
+        if [ -f /etc/redis/redis.conf ] && [ -r /etc/redis/redis.conf ]; then
             redis-server /etc/redis/redis.conf --daemonize yes
         else
-            redis-server --daemonize yes --dir /var/lib/redis-server/data
+            echo "Config file not accessible, starting with minimal config"
+            redis-server --daemonize yes --dir /var/lib/redis-server/data --port 6379
         fi
     }
 elif command -v service >/dev/null 2>&1; then
     # Try using service command if available
     service redis-server start >/dev/null 2>&1 || {
         echo "Service command failed, falling back to direct Redis startup"
-        if [ -f /etc/redis/redis.conf ]; then
+        if [ -f /etc/redis/redis.conf ] && [ -r /etc/redis/redis.conf ]; then
             redis-server /etc/redis/redis.conf --daemonize yes
         else
-            redis-server --daemonize yes --dir /var/lib/redis-server/data
+            echo "Config file not accessible, starting with minimal config"
+            redis-server --daemonize yes --dir /var/lib/redis-server/data --port 6379
         fi
     }
 else
     # Fall back to direct Redis startup
     echo "Starting Redis server directly..."
-    if [ -f /etc/redis/redis.conf ]; then
+    if [ -f /etc/redis/redis.conf ] && [ -r /etc/redis/redis.conf ]; then
         redis-server /etc/redis/redis.conf --daemonize yes
     else
-        redis-server --daemonize yes --dir /var/lib/redis-server/data
+        echo "Config file not accessible, starting with minimal config"
+        redis-server --daemonize yes --dir /var/lib/redis-server/data --port 6379
     fi
 fi
 
