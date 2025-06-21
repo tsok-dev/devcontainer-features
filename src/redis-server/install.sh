@@ -83,7 +83,7 @@ chown "$USERNAME":"$USERNAME" "$CONF_FILE"
 # 6. Launch Redis right away so the feature “just works”
 ################################################################################
 echo "Starting Redis on port $REDIS_PORT…"
-sudo -u "$USERNAME" redis-server "$CONF_FILE"
+redis-server "$CONF_FILE"
 
 # Quick sanity-check (retry for up to 5 s)
 for i in {1..10}; do
