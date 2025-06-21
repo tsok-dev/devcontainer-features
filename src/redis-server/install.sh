@@ -54,178 +54,135 @@ check_packages() {
     fi
 }
 
-setup_redis() {
-    # Create Redis data directory and set permissions
-    mkdir -p /var/lib/redis-server/data
+# Set up directories and permissions
+setup_directories() {
+    echo "Setting up Redis directories..."
+    mkdir -p /var/lib/redis-server/data /var/lib/redis-server/logs
     
-    # Set ownership to the determined USERNAME if not root, otherwise try redis user
+    # Set proper ownership and permissions
     if [ "${USERNAME}" != "root" ] && id "${USERNAME}" >/dev/null 2>&1; then
-        chown -R "${USERNAME}:${USERNAME}" /var/lib/redis-server/data
-        chmod 0755 /var/lib/redis-server/data
+        chown -R "${USERNAME}:${USERNAME}" /var/lib/redis-server
+        REDIS_USER="${USERNAME}"
     elif id redis >/dev/null 2>&1; then
-        chown -R redis:redis /var/lib/redis-server/data
-        chmod 0750 /var/lib/redis-server/data
+        chown -R redis:redis /var/lib/redis-server
+        REDIS_USER="redis"
     else
-        chmod 0755 /var/lib/redis-server/data
+        REDIS_USER="root"
     fi
     
-    # Update Redis configuration and fix permissions
-    if [ -f /etc/redis/redis.conf ]; then
-        # Make config file readable by the user who will run Redis
-        chmod 644 /etc/redis/redis.conf
-        
-        # Update configuration - replace the default dir instead of appending
-        sed -i 's|^dir /var/lib/redis.*|dir /var/lib/redis-server/data|' /etc/redis/redis.conf
-        # If no dir line exists, add it
-        if ! grep -q "^dir " /etc/redis/redis.conf; then
-            echo "dir /var/lib/redis-server/data" >> /etc/redis/redis.conf
-        fi
-        
-        # Set up logging to a writable location
-        mkdir -p /var/lib/redis-server/logs
-        if [ "${USERNAME}" != "root" ] && id "${USERNAME}" >/dev/null 2>&1; then
-            chown -R "${USERNAME}:${USERNAME}" /var/lib/redis-server/logs
-        elif id redis >/dev/null 2>&1; then
-            chown -R redis:redis /var/lib/redis-server/logs
-        fi
-        chmod 755 /var/lib/redis-server/logs
-        
-        # Update log file location to our writable directory
-        sed -i 's|^logfile.*|logfile /var/lib/redis-server/logs/redis-server.log|' /etc/redis/redis.conf
-        # If no logfile line exists, add it
-        if ! grep -q "^logfile " /etc/redis/redis.conf; then
-            echo "logfile /var/lib/redis-server/logs/redis-server.log" >> /etc/redis/redis.conf
-        fi
-        
-        # Enable Redis to start as a daemon
-        sed -i 's/^daemonize no/daemonize yes/' /etc/redis/redis.conf
-        
-        # Add memory overcommit setting to avoid warnings
-        if ! grep -q "vm.overcommit_memory" /etc/redis/redis.conf; then
-            echo "# Memory overcommit setting for containers" >> /etc/redis/redis.conf
-            echo "# This is handled at the system level in containers" >> /etc/redis/redis.conf
-        fi
-        
-        # Set ownership of config directory
-        if [ "${USERNAME}" != "root" ] && id "${USERNAME}" >/dev/null 2>&1; then
-            chown -R "${USERNAME}:${USERNAME}" /etc/redis/
-        elif id redis >/dev/null 2>&1; then
-            chown -R redis:redis /etc/redis/
-        fi
-    fi
+    chmod -R 755 /var/lib/redis-server
+}
+
+# Create a simple, reliable Redis configuration
+create_redis_config() {
+    echo "Creating Redis configuration..."
     
-    # Create init script that handles both systemd and direct Redis startup
-    tee /usr/local/share/redis-server-init.sh << EOF
+    # Create a custom config that works reliably in containers
+    cat > /etc/redis/redis-server.conf << 'EOF'
+# Redis configuration optimized for dev containers
+port 6379
+bind 0.0.0.0
+timeout 0
+keepalive 300
+daemonize yes
+
+# Data persistence
+dir /var/lib/redis-server/data
+dbfilename dump.rdb
+save 900 1
+save 300 10
+save 60 10000
+
+# Logging
+logfile /var/lib/redis-server/logs/redis-server.log
+loglevel notice
+
+# Memory management
+maxmemory-policy allkeys-lru
+
+# Security - no authentication in dev environment
+protected-mode no
+EOF
+
+    chmod 644 /etc/redis/redis-server.conf
+    
+    # Set ownership of config
+    if [ "${USERNAME}" != "root" ] && id "${USERNAME}" >/dev/null 2>&1; then
+        chown "${USERNAME}:${USERNAME}" /etc/redis/redis-server.conf
+    elif id redis >/dev/null 2>&1; then
+        chown redis:redis /etc/redis/redis-server.conf
+    fi
+}
+
+setup_redis() {
+    setup_directories
+    create_redis_config
+    # Create simplified, reliable init script
+    cat > /usr/local/share/redis-server-init.sh << 'EOF'
 #!/bin/sh
 set -e
 
-# Ensure Redis data directory exists
-mkdir -p /var/lib/redis-server/data
-mkdir -p /var/lib/redis-server/logs
+echo "Starting Redis server..."
 
-# Set permissions using the same logic as installation
-if [ "${USERNAME}" != "root" ] && id "${USERNAME}" >/dev/null 2>&1; then
-    chown -R "${USERNAME}:${USERNAME}" /var/lib/redis-server/data
-    chown -R "${USERNAME}:${USERNAME}" /var/lib/redis-server/logs
-    chmod 0755 /var/lib/redis-server/data
-    chmod 0755 /var/lib/redis-server/logs
-    REDIS_USER="${USERNAME}"
-elif id redis >/dev/null 2>&1; then
-    chown -R redis:redis /var/lib/redis-server/data
-    chown -R redis:redis /var/lib/redis-server/logs
-    chmod 0750 /var/lib/redis-server/data
-    chmod 0750 /var/lib/redis-server/logs
-    REDIS_USER="redis"
-else
-    chmod 0755 /var/lib/redis-server/data
-    chmod 0755 /var/lib/redis-server/logs
-    REDIS_USER="\$(whoami)"
-fi
+# Ensure directories exist with proper permissions
+mkdir -p /var/lib/redis-server/data /var/lib/redis-server/logs
+chmod -R 755 /var/lib/redis-server
 
-# Ensure config file permissions are correct
-if [ -f /etc/redis/redis.conf ]; then
-    chmod 644 /etc/redis/redis.conf
-    # Also ensure the config uses the correct data directory
-    sed -i 's|^dir /var/lib/redis.*|dir /var/lib/redis-server/data|' /etc/redis/redis.conf
-    # Update log file location to our writable directory
-    sed -i 's|^logfile.*|logfile /var/lib/redis-server/logs/redis-server.log|' /etc/redis/redis.conf
-fi
-
-# Set memory overcommit to avoid Redis warnings in containers
+# Set memory overcommit to avoid Redis warnings
 echo 1 > /proc/sys/vm/overcommit_memory 2>/dev/null || true
 
-# Start Redis server
-if command -v systemctl >/dev/null 2>&1 && systemctl is-system-running >/dev/null 2>&1; then
-    # Use systemd if available and running
-    systemctl enable redis-server >/dev/null 2>&1 || true
-    systemctl start redis-server || {
-        echo "Systemd failed, falling back to direct Redis startup"
-        if [ -f /etc/redis/redis.conf ] && [ -r /etc/redis/redis.conf ]; then
-            redis-server /etc/redis/redis.conf --daemonize yes
-        else
-            echo "Config file not accessible, starting with minimal config"
-            redis-server --daemonize yes --dir /var/lib/redis-server/data --port 6379
-        fi
-    }
-elif command -v service >/dev/null 2>&1; then
-    # Try using service command if available
-    service redis-server start >/dev/null 2>&1 || {
-        echo "Service command failed, falling back to direct Redis startup"
-        if [ -f /etc/redis/redis.conf ] && [ -r /etc/redis/redis.conf ]; then
-            redis-server /etc/redis/redis.conf --daemonize yes
-        else
-            echo "Config file not accessible, starting with minimal config"
-            redis-server --daemonize yes --dir /var/lib/redis-server/data --port 6379
-        fi
-    }
+# Start Redis with our custom config, fallback to minimal config if needed
+if [ -f /etc/redis/redis-server.conf ]; then
+    echo "Starting Redis with custom configuration..."
+    redis-server /etc/redis/redis-server.conf
+elif [ -f /etc/redis/redis.conf ]; then
+    echo "Starting Redis with system configuration..."
+    redis-server /etc/redis/redis.conf --daemonize yes --dir /var/lib/redis-server/data --logfile /var/lib/redis-server/logs/redis-server.log
 else
-    # Fall back to direct Redis startup
-    echo "Starting Redis server directly..."
-    if [ -f /etc/redis/redis.conf ] && [ -r /etc/redis/redis.conf ]; then
-        redis-server /etc/redis/redis.conf --daemonize yes
-    else
-        echo "Config file not accessible, starting with minimal config"
-        redis-server --daemonize yes --dir /var/lib/redis-server/data --port 6379
-    fi
+    echo "Starting Redis with minimal configuration..."
+    redis-server --daemonize yes --dir /var/lib/redis-server/data --port 6379 --logfile /var/lib/redis-server/logs/redis-server.log --protected-mode no
 fi
 
-# Wait a moment for Redis to start
-sleep 3
+# Wait for Redis to start
+echo "Waiting for Redis to start..."
+sleep 2
 
 # Verify Redis is running
-if redis-cli ping >/dev/null 2>&1; then
-    echo "Redis server started successfully"
-else
-    echo "Warning: Redis may not be running properly"
-    # Try to show Redis process status for debugging
-    if command -v pgrep >/dev/null 2>&1; then
-        if pgrep redis-server >/dev/null 2>&1; then
-            echo "Redis process is running but not responding to ping"
-            echo "Trying to connect with explicit port..."
-            if redis-cli -p 6379 ping >/dev/null 2>&1; then
-                echo "Redis is responding on port 6379"
-            else
-                echo "Redis still not responding on port 6379"
-                # Show Redis log if available
-                if [ -f /var/lib/redis-server/logs/redis-server.log ]; then
-                    echo "Last few lines of Redis log:"
-                    tail -n 5 /var/lib/redis-server/logs/redis-server.log 2>/dev/null || true
-                fi
-            fi
-        else
-            echo "Redis process not found"
-        fi
+max_attempts=10
+attempt=1
+while [ $attempt -le $max_attempts ]; do
+    if redis-cli ping >/dev/null 2>&1; then
+        echo "Redis server started successfully and is responding to ping"
+        break
+    else
+        echo "Attempt $attempt/$max_attempts: Redis not responding yet..."
+        sleep 1
+        attempt=$((attempt + 1))
     fi
+done
+
+if [ $attempt -gt $max_attempts ]; then
+    echo "Warning: Redis may not be running properly"
+    if command -v pgrep >/dev/null 2>&1 && pgrep redis-server >/dev/null 2>&1; then
+        echo "Redis process is running but not responding to ping"
+        if [ -f /var/lib/redis-server/logs/redis-server.log ]; then
+            echo "Redis log:"
+            tail -n 10 /var/lib/redis-server/logs/redis-server.log 2>/dev/null || true
+        fi
+    else
+        echo "Redis process not found"
+    fi
+else
+    echo "Redis is ready!"
 fi
 
-set +e
-
-# Execute whatever commands were passed in (if any). This allows us
-# to set this script to ENTRYPOINT while still executing the default CMD.
-exec "\$@"
+# Execute any additional commands passed to the script
+exec "$@"
 EOF
+
     chmod +x /usr/local/share/redis-server-init.sh
-    chown ${USERNAME}:root /usr/local/share/redis-server-init.sh
+    
+    echo "Redis setup complete!"
 }
 
 install_using_apt() {
