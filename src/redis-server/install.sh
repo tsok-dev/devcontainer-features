@@ -124,7 +124,7 @@ EOF
 setup_redis() {
     setup_directories
     create_redis_config
-    # Create simplified, reliable init script
+    # Create simplified, bulletproof init script
     cat > /usr/local/share/redis-server-init.sh << 'EOF'
 #!/bin/sh
 set -e
@@ -132,74 +132,65 @@ set -e
 echo "Starting Redis server..."
 
 # Ensure directories exist with proper permissions
-mkdir -p /var/lib/redis-server/data /var/lib/redis-server/logs /etc/redis
+mkdir -p /var/lib/redis-server/data /var/lib/redis-server/logs
+
+# Set proper ownership based on determined user (same logic as installation)
+if [ "${USERNAME:-}" != "root" ] && [ "${USERNAME:-}" != "" ] && id "${USERNAME}" >/dev/null 2>&1; then
+    chown -R "${USERNAME}:${USERNAME}" /var/lib/redis-server
+elif id redis >/dev/null 2>&1; then
+    chown -R redis:redis /var/lib/redis-server
+fi
+
 chmod -R 755 /var/lib/redis-server
-chmod 755 /etc/redis
 
 # Set memory overcommit to avoid Redis warnings
 echo 1 > /proc/sys/vm/overcommit_memory 2>/dev/null || true
 
-# Ensure config file has proper permissions if it exists
-if [ -f /etc/redis/redis-server.conf ]; then
-    chmod 644 /etc/redis/redis-server.conf
-fi
-
-# Start Redis with our custom config, fallback to minimal config if needed
-if [ -f /etc/redis/redis-server.conf ] && [ -r /etc/redis/redis-server.conf ]; then
-    echo "Starting Redis with custom configuration..."
-    redis-server /etc/redis/redis-server.conf
-elif [ -f /etc/redis/redis.conf ] && [ -r /etc/redis/redis.conf ]; then
-    echo "Starting Redis with system configuration..."
-    redis-server /etc/redis/redis.conf --daemonize yes --dir /var/lib/redis-server/data --logfile /var/lib/redis-server/logs/redis-server.log
-else
-    echo "Config file not accessible, creating minimal config and starting Redis..."
-    # Create a minimal config file if none exists or is readable
-    cat > /tmp/redis-minimal.conf << 'TMPEOF'
+# Create a guaranteed working config in /var/lib/redis-server
+cat > /var/lib/redis-server/redis.conf << 'REDISEOF'
 port 6379
 bind 0.0.0.0
 daemonize yes
 dir /var/lib/redis-server/data
 logfile /var/lib/redis-server/logs/redis-server.log
 protected-mode no
-TMPEOF
-    chmod 644 /tmp/redis-minimal.conf
-    redis-server /tmp/redis-minimal.conf
+save ""
+REDISEOF
+
+# Set proper ownership and permissions on config file
+chmod 644 /var/lib/redis-server/redis.conf
+if [ "${USERNAME:-}" != "root" ] && [ "${USERNAME:-}" != "" ] && id "${USERNAME}" >/dev/null 2>&1; then
+    chown "${USERNAME}:${USERNAME}" /var/lib/redis-server/redis.conf
+elif id redis >/dev/null 2>&1; then
+    chown redis:redis /var/lib/redis-server/redis.conf
 fi
 
-# Wait for Redis to start
-echo "Waiting for Redis to start..."
+echo "Starting Redis with guaranteed config..."
+redis-server /var/lib/redis-server/redis.conf
+
+# Wait briefly for startup
 sleep 2
 
-# Verify Redis is running
-max_attempts=10
-attempt=1
-while [ $attempt -le $max_attempts ]; do
-    if redis-cli ping >/dev/null 2>&1; then
-        echo "Redis server started successfully and is responding to ping"
-        break
-    else
-        echo "Attempt $attempt/$max_attempts: Redis not responding yet..."
-        sleep 1
-        attempt=$((attempt + 1))
-    fi
-done
-
-if [ $attempt -gt $max_attempts ]; then
-    echo "Warning: Redis may not be running properly"
-    if command -v pgrep >/dev/null 2>&1 && pgrep redis-server >/dev/null 2>&1; then
-        echo "Redis process is running but not responding to ping"
-        if [ -f /var/lib/redis-server/logs/redis-server.log ]; then
-            echo "Redis log:"
-            tail -n 10 /var/lib/redis-server/logs/redis-server.log 2>/dev/null || true
-        fi
-    else
-        echo "Redis process not found"
-    fi
+# Simple verification
+echo "Verifying Redis startup..."
+if redis-cli ping > /dev/null 2>&1; then
+    echo "✓ Redis is running and responding"
 else
-    echo "Redis is ready!"
+    echo "✗ Redis ping failed, checking process..."
+    if pgrep redis-server > /dev/null 2>&1; then
+        echo "✓ Redis process found, may need more time"
+    else
+        echo "✗ No Redis process found"
+        if [ -f /var/lib/redis-server/logs/redis-server.log ]; then
+            echo "Redis log output:"
+            cat /var/lib/redis-server/logs/redis-server.log
+        fi
+    fi
 fi
 
-# Execute any additional commands passed to the script
+echo "Redis startup complete"
+
+# Execute any additional commands
 exec "$@"
 EOF
 
