@@ -77,6 +77,9 @@ setup_directories() {
 create_redis_config() {
     echo "Creating Redis configuration..."
     
+    # Ensure the config directory exists
+    mkdir -p /etc/redis
+    
     # Create a custom config that works reliably in containers
     cat > /etc/redis/redis-server.conf << 'EOF'
 # Redis configuration optimized for dev containers
@@ -104,14 +107,18 @@ maxmemory-policy allkeys-lru
 protected-mode no
 EOF
 
+    # Set proper permissions on config file - make it readable by everyone
     chmod 644 /etc/redis/redis-server.conf
     
-    # Set ownership of config
+    # Set ownership of entire config directory and file
     if [ "${USERNAME}" != "root" ] && id "${USERNAME}" >/dev/null 2>&1; then
-        chown "${USERNAME}:${USERNAME}" /etc/redis/redis-server.conf
+        chown -R "${USERNAME}:${USERNAME}" /etc/redis
     elif id redis >/dev/null 2>&1; then
-        chown redis:redis /etc/redis/redis-server.conf
+        chown -R redis:redis /etc/redis
     fi
+    
+    # Ensure the config directory has proper permissions
+    chmod 755 /etc/redis
 }
 
 setup_redis() {
@@ -125,22 +132,38 @@ set -e
 echo "Starting Redis server..."
 
 # Ensure directories exist with proper permissions
-mkdir -p /var/lib/redis-server/data /var/lib/redis-server/logs
+mkdir -p /var/lib/redis-server/data /var/lib/redis-server/logs /etc/redis
 chmod -R 755 /var/lib/redis-server
+chmod 755 /etc/redis
 
 # Set memory overcommit to avoid Redis warnings
 echo 1 > /proc/sys/vm/overcommit_memory 2>/dev/null || true
 
-# Start Redis with our custom config, fallback to minimal config if needed
+# Ensure config file has proper permissions if it exists
 if [ -f /etc/redis/redis-server.conf ]; then
+    chmod 644 /etc/redis/redis-server.conf
+fi
+
+# Start Redis with our custom config, fallback to minimal config if needed
+if [ -f /etc/redis/redis-server.conf ] && [ -r /etc/redis/redis-server.conf ]; then
     echo "Starting Redis with custom configuration..."
     redis-server /etc/redis/redis-server.conf
-elif [ -f /etc/redis/redis.conf ]; then
+elif [ -f /etc/redis/redis.conf ] && [ -r /etc/redis/redis.conf ]; then
     echo "Starting Redis with system configuration..."
     redis-server /etc/redis/redis.conf --daemonize yes --dir /var/lib/redis-server/data --logfile /var/lib/redis-server/logs/redis-server.log
 else
-    echo "Starting Redis with minimal configuration..."
-    redis-server --daemonize yes --dir /var/lib/redis-server/data --port 6379 --logfile /var/lib/redis-server/logs/redis-server.log --protected-mode no
+    echo "Config file not accessible, creating minimal config and starting Redis..."
+    # Create a minimal config file if none exists or is readable
+    cat > /tmp/redis-minimal.conf << 'TMPEOF'
+port 6379
+bind 0.0.0.0
+daemonize yes
+dir /var/lib/redis-server/data
+logfile /var/lib/redis-server/logs/redis-server.log
+protected-mode no
+TMPEOF
+    chmod 644 /tmp/redis-minimal.conf
+    redis-server /tmp/redis-minimal.conf
 fi
 
 # Wait for Redis to start
