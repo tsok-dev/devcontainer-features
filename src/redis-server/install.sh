@@ -23,7 +23,7 @@ fi
 ################################################################################
 # Start Redis – background, container-friendly
 ################################################################################
-redis-server \
+sudo redis-server \
   --daemonize yes \
   --port "$REDIS_PORT" \
   --bind 0.0.0.0 \
