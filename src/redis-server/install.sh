@@ -65,11 +65,13 @@ chown -R "$USERNAME":"$USERNAME" "$DATA_DIR" "$LOG_DIR" "$CONF_DIR"
 cat > "$CONF_FILE" <<EOF
 bind 0.0.0.0
 port $REDIS_PORT
-daemonize yes                  # run in background; container keeps running
+# Run Redis as a background daemon (dev-container friendly)
+daemonize yes
 dir $DATA_DIR
 logfile $LOG_DIR/redis.log
-protected-mode no              # dev-only! turn on in prod
-supervised no                  # plain background process
+protected-mode no
+
+# RDB snapshots – keep them small for dev use
 save 900 1
 save 300 10
 save 60 10000
