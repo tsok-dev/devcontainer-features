@@ -15,7 +15,7 @@ $nanolayer_location \
     install \
     devcontainer-feature \
     "ghcr.io/devcontainers-extra/features/gh-release:1.0.25" \
-    --option repo='ory/keto' --option binaryNames='keto' --option version="$VERSION" --option assetRegex='.*(Linux_64).*'
+    --option repo='ory/keto' --option binaryNames='keto' --option version="$VERSION" --option assetRegex='.*linux_64bit\.tar\.gz'
 
 
 
