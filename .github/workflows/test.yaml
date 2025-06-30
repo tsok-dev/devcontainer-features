@@ -14,7 +14,8 @@ jobs:
       matrix:
         features: [
            "confluent-cli",
-           "confluent-platform"
+           "confluent-platform",
+           "nats"
         ]
         baseImage:
           [

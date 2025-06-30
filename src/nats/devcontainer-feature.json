@@ -1,0 +1,92 @@
+{
+    "id": "nats",
+    "version": "1.0.0",
+    "name": "NATS Server and CLI",
+    "description": "Installs NATS server and CLI from GitHub releases with configurable authentication and service management.",
+    "options": {
+        "serverVersion": {
+            "type": "string",
+            "default": "latest",
+            "description": "Version of NATS server to install (e.g., 'latest', '2.11.5')."
+        },
+        "cliVersion": {
+            "type": "string", 
+            "default": "latest",
+            "description": "Version of NATS CLI to install (e.g., 'latest', '0.2.3')."
+        },
+        "installPath": {
+            "type": "string",
+            "default": "/usr/local/bin",
+            "description": "Directory where NATS binaries will be installed."
+        },
+        "port": {
+            "type": "string",
+            "default": "4222",
+            "description": "Port for NATS server to listen on."
+        },
+        "monitorPort": {
+            "type": "string",
+            "default": "8222", 
+            "description": "Port for NATS server monitoring interface."
+        },
+        "jetstream": {
+            "type": "boolean",
+            "default": true,
+            "description": "Enable JetStream (persistent messaging) support."
+        },
+        "autoStart": {
+            "type": "boolean",
+            "default": true,
+            "description": "Automatically start NATS server when the container starts."
+        },
+        "auth": {
+            "type": "string",
+            "enum": ["none", "token", "user-password", "nkey"],
+            "default": "none",
+            "description": "Authentication method for NATS server."
+        },
+        "token": {
+            "type": "string",
+            "default": "",
+            "description": "Authentication token (only used when auth is 'token')."
+        },
+        "username": {
+            "type": "string", 
+            "default": "nats",
+            "description": "Username for authentication (only used when auth is 'user-password')."
+        },
+        "password": {
+            "type": "string",
+            "default": "password",
+            "description": "Password for authentication (only used when auth is 'user-password')."
+        },
+        "dataDir": {
+            "type": "string",
+            "default": "/var/lib/nats",
+            "description": "Directory for NATS server data storage (JetStream, etc.)."
+        }
+    },
+    "mounts": [
+        {
+            "source": "nats-data-${devcontainerId}",
+            "target": "/var/lib/nats",
+            "type": "volume"
+        }
+    ],
+    "entrypoint": "/usr/local/share/nats-init.sh",
+    "postStartCommand": "nats --version && nats-server --version",
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "ms-vscode.vscode-json"
+            ]
+        }
+    },
+    "containerEnv": {
+        "NATS_PORT": "4222",
+        "NATS_MONITOR_PORT": "8222"
+    },
+    "installsAfter": [
+        "ghcr.io/devcontainers/features/common-utils"
+    ]
+}

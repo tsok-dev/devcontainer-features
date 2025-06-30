@@ -24,6 +24,13 @@
         },
         "../src/wundergraph-cosmo-cli": {
             "version": "0.72.0"
+        },
+        "../src/nats": {
+            "serverVersion": "2.11.5",
+            "cliVersion": "0.2.3",
+            "auth": "user-password",
+            "username": "admin",
+            "password": "secret"
         }
     },
     "remoteUser": "node",

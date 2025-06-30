@@ -1,6 +1,6 @@
-# Dev Container Features: Confluent CLI & Confluent Platform
+# Dev Container Features Collection
 
-This repository hosts multiple Dev Container Features for working with [Confluent](https://www.confluent.io/) in a Docker-based development environment.  
+This repository hosts multiple Dev Container Features for various development tools and services.  
 
 ## Repository Structure
 
@@ -10,11 +10,17 @@ This repository hosts multiple Dev Container Features for working with [Confluen
 │  ├─ confluent-cli/
 │  │  ├─ devcontainer-feature.json
 │  │  ├─ install.sh
-│  │  └─ README.md (optional, for feature-specific docs)
-│  └─ confluent-platform/
-│     ├─ devcontainer-feature.json
-│     ├─ install.sh
-│     └─ README.md (optional)
+│  │  └─ README.md
+│  ├─ confluent-platform/
+│  │  ├─ devcontainer-feature.json
+│  │  ├─ install.sh
+│  │  └─ README.md
+│  ├─ nats/
+│  │  ├─ devcontainer-feature.json
+│  │  ├─ install.sh
+│  │  ├─ library_scripts.sh
+│  │  └─ README.md
+│  └─ ... (other features)
 ├─ .devcontainer/
 │  └─ devcontainer.json (example usage)
 ├─ LICENSE
@@ -34,6 +40,15 @@ This repository hosts multiple Dev Container Features for working with [Confluen
    - User-configurable options:
      - `version`: The Confluent Platform version (e.g. `7.4.0`).  
      - `installPath`: Where the platform is extracted (default `/usr/local/confluent`).  
+
+3. **`nats`**  
+   - Installs NATS server and CLI from GitHub Releases with configurable authentication and service management.
+   - User-configurable options:
+     - `serverVersion`: NATS server version (e.g. `2.11.5`, or `latest`).
+     - `cliVersion`: NATS CLI version (e.g. `0.2.3`, or `latest`).
+     - `auth`: Authentication method (`none`, `token`, `user-password`, `nkey`).
+     - `jetstream`: Enable JetStream persistent messaging (default `true`).
+     - `autoStart`: Automatically start NATS server (default `true`).
 
 ---
 
@@ -59,7 +74,7 @@ If you want to use these features in a local Dev Container without publishing th
 
    ```jsonc
    {
-     "name": "Dev Container with Confluent",
+     "name": "Dev Container with Confluent and NATS",
      "features": {
        // Confluent CLI feature (path to src/confluent-cli)
        "../my-devcontainer-features/src/confluent-cli": {
@@ -70,6 +85,15 @@ If you want to use these features in a local Dev Container without publishing th
        "../my-devcontainer-features/src/confluent-platform": {
          "version": "7.4.0",
          "installPath": "/usr/local/confluent"
+       },
+       // NATS feature (path to src/nats)
+       "../my-devcontainer-features/src/nats": {
+         "serverVersion": "latest",
+         "cliVersion": "latest",
+         "auth": "user-password",
+         "username": "admin",
+         "password": "secure-password",
+         "jetstream": true
        }
      }
    }
