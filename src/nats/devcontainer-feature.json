@@ -1,6 +1,6 @@
 {
     "id": "nats",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "name": "NATS Server and CLI",
     "description": "Installs NATS server and CLI from GitHub releases with configurable authentication and service management.",
     "options": {
