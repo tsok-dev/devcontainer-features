@@ -34,7 +34,7 @@ $nanolayer_location \
     --option repo='nats-io/nats-server' \
     --option binaryNames='nats-server' \
     --option version="$SERVER_VERSION" \
-    --option assetRegex='.*amd64\.deb'
+    --option assetRegex='.*linux-amd64\.tar\.gz'
 
 # Install NATS CLI from GitHub releases  
 echo "Installing NATS CLI..."
@@ -45,7 +45,7 @@ $nanolayer_location \
     --option repo='nats-io/natscli' \
     --option binaryNames='nats' \
     --option version="$CLI_VERSION" \
-    --option assetRegex='.*amd64\.deb'
+    --option assetRegex='.*linux-amd64\.zip'
 
 # Create data directory
 echo "Creating NATS data directory..."
