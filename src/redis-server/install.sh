@@ -48,19 +48,21 @@ install_packages() {
 }
 
 setup_redis_wrapper() {
+    # Create and configure the data directory with proper ownership and permissions
+    mkdir -p "$REDIS_DATA_DIR"
+    chown -R redis:redis "$REDIS_DATA_DIR"
+    chmod 0750 "$REDIS_DATA_DIR"
+
     cat << 'EOF' > /usr/local/share/redis-server-init.sh
 #!/bin/bash
 set -e
-
-chown -R redis:redis /var/lib/redis-server/data
-chmod 0750 /var/lib/redis-server/data
 
 # Start redis-server directly (not using init.d)
 exec redis-server /etc/redis/redis.conf "$@"
 EOF
 
     chmod +x /usr/local/share/redis-server-init.sh
-    chown "${USERNAME}:root" /usr/local/share/redis-server-init.sh
+    chown root:root /usr/local/share/redis-server-init.sh
 }
 
 install_redis_via_apt() {
