@@ -101,6 +101,11 @@ setup_redis_directories() {
     # Create config directory
     mkdir -p "${REDIS_CONFIG_DIR}"
     chmod 0755 "${REDIS_CONFIG_DIR}"
+    
+    # Create PID directory (needs to be done as root)
+    mkdir -p "/var/run/redis"
+    chown -R "${USERNAME}:${USERNAME}" "/var/run/redis"
+    chmod 0755 "/var/run/redis"
 }
 
 # Create Redis configuration file
@@ -166,11 +171,28 @@ REDIS_CONFIG_FILE="/etc/redis/redis.conf"
 REDIS_PID_FILE="/var/run/redis/redis-server.pid"
 REDIS_LOG_FILE="/var/log/redis/redis-server.log"
 
-# Ensure PID directory exists
-mkdir -p "$(dirname "${REDIS_PID_FILE}")"
+# Function to ensure PID directory exists with proper permissions
+ensure_pid_directory() {
+    local pid_dir="$(dirname "${REDIS_PID_FILE}")"
+    if [[ ! -d "${pid_dir}" ]]; then
+        if mkdir -p "${pid_dir}" 2>/dev/null; then
+            chmod 755 "${pid_dir}"
+        else
+            # Fallback to user's home directory if we can't create in /var/run
+            REDIS_PID_FILE="${HOME}/.redis-server.pid"
+            echo "[$(date)] Warning: Using fallback PID file location: ${REDIS_PID_FILE}"
+        fi
+    elif [[ ! -w "${pid_dir}" ]]; then
+        # Fallback if directory exists but not writable
+        REDIS_PID_FILE="${HOME}/.redis-server.pid"
+        echo "[$(date)] Warning: Using fallback PID file location: ${REDIS_PID_FILE}"
+    fi
+}
 
 # Function to check if Redis is already running
 is_redis_running() {
+    ensure_pid_directory
+    
     if [[ -f "${REDIS_PID_FILE}" ]]; then
         local pid=$(cat "${REDIS_PID_FILE}")
         if kill -0 "${pid}" 2>/dev/null; then
@@ -190,6 +212,8 @@ start_redis() {
         echo "[$(date)] Redis server is already running"
         return 0
     fi
+    
+    ensure_pid_directory
     
     # Start Redis server in the background
     redis-server "${REDIS_CONFIG_FILE}" --daemonize yes --pidfile "${REDIS_PID_FILE}"
