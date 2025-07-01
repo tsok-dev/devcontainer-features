@@ -53,16 +53,25 @@ setup_redis_wrapper() {
     chown -R redis:redis "$REDIS_DATA_DIR"
     chmod 0750 "$REDIS_DATA_DIR"
 
+    # Ensure redis config file is readable by redis group
+    if [ -f /etc/redis/redis.conf ]; then
+        chmod 640 /etc/redis/redis.conf
+    fi
+
     cat << 'EOF' > /usr/local/share/redis-server-init.sh
 #!/bin/bash
 set -e
 
-# Start redis-server directly (not using init.d)
-exec redis-server /etc/redis/redis.conf "$@"
+# Start redis-server as redis user
+exec sudo -u redis redis-server /etc/redis/redis.conf "$@"
 EOF
 
     chmod +x /usr/local/share/redis-server-init.sh
     chown root:root /usr/local/share/redis-server-init.sh
+
+    # Allow the non-root user to run redis-server as redis user without password
+    echo "${USERNAME} ALL=(redis) NOPASSWD: /usr/bin/redis-server" >> /etc/sudoers.d/redis-server
+    chmod 440 /etc/sudoers.d/redis-server
 }
 
 install_redis_via_apt() {
