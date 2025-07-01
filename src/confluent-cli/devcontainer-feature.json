@@ -1,6 +1,6 @@
 {
     "id": "confluent-cli",
-    "version": "1.0.2",
+    "version": "1.0.3",
     "name": "Confluent CLI Installer",
     "description": "Installs the Confluent CLI inside a Dev Container",
     "options": {
@@ -17,5 +17,6 @@
     },
     "installsAfter": [
         "ghcr.io/devcontainers/features/common-utils"
-    ]
+    ],
+    "postStartCommand": "confluent local services start"
 }
