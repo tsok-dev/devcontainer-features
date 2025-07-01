@@ -48,30 +48,32 @@ install_packages() {
 }
 
 setup_redis_wrapper() {
-    # Create and configure the data directory with proper ownership and permissions
+    # Create and configure the data directory with proper ownership and permissions for the node user
     mkdir -p "$REDIS_DATA_DIR"
-    chown -R redis:redis "$REDIS_DATA_DIR"
-    chmod 0750 "$REDIS_DATA_DIR"
+    chown -R "${USERNAME}:${USERNAME}" "$REDIS_DATA_DIR"
+    chmod 0755 "$REDIS_DATA_DIR"
 
-    # Ensure redis config file is readable by redis group
+    # Make redis config file readable by the node user
     if [ -f /etc/redis/redis.conf ]; then
-        chmod 640 /etc/redis/redis.conf
+        chown "${USERNAME}:${USERNAME}" /etc/redis/redis.conf
+        chmod 644 /etc/redis/redis.conf
     fi
+
+    # Make redis log directory accessible to node user
+    mkdir -p /var/log/redis
+    chown -R "${USERNAME}:${USERNAME}" /var/log/redis
+    chmod 755 /var/log/redis
 
     cat << 'EOF' > /usr/local/share/redis-server-init.sh
 #!/bin/bash
 set -e
 
-# Start redis-server as redis user
-exec sudo -u redis redis-server /etc/redis/redis.conf "$@"
+# Start redis-server directly as current user
+exec redis-server /etc/redis/redis.conf "$@"
 EOF
 
     chmod +x /usr/local/share/redis-server-init.sh
-    chown root:root /usr/local/share/redis-server-init.sh
-
-    # Allow the non-root user to run redis-server as redis user without password
-    echo "${USERNAME} ALL=(redis) NOPASSWD: /usr/bin/redis-server" >> /etc/sudoers.d/redis-server
-    chmod 440 /etc/sudoers.d/redis-server
+    chown "${USERNAME}:${USERNAME}" /usr/local/share/redis-server-init.sh
 }
 
 install_redis_via_apt() {
